@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const VERIFICATION_TOKEN = "your-verification-token-here"; // use the working one
+const VERIFICATION_TOKEN = "7f0a8c12b4f643c9a8c70842e73f7b89"; // use the working one
 
 app.use(express.json());
 
