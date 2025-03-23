@@ -1,21 +1,18 @@
 const express = require("express");
+const crypto = require("crypto");
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
-const VERIFICATION_TOKEN = "7f0a8c12b4f643c9a8c70842e73f7b89"; // your working token
+const VERIFICATION_TOKEN = "7f0a8c12b4f643c9a8c70842e73f7b89"; // your production token
+const ENDPOINT = "https://fragrancehook.life/webhook"; // your final domain
 
 app.use(express.json());
 
-// Handle GET requests for webhook verification
+// Handle GET challenge
 app.get("/webhook", (req, res) => {
-  // eBay might send the challenge as either "challenge" or "challenge_code"
-  const challenge = req.query.challenge || req.query.challenge_code;
-  
+  const challenge = req.query.challenge_code;
   if (challenge) {
     console.log("✅ Received GET challenge from eBay:", challenge);
-    // Explicitly set content type to text/plain
-    res.set("Content-Type", "text/plain");
-    // Return the raw challenge string
     res.status(200).send(challenge);
   } else {
     console.log("❌ GET request missing challenge");
@@ -23,22 +20,29 @@ app.get("/webhook", (req, res) => {
   }
 });
 
-// Handle POST requests for webhook verification or actual events
+// Handle POST challenge for Marketplace Deletion
 app.post("/webhook", (req, res) => {
-  const { challenge, verificationToken: token } = req.body;
-  
-  if (challenge && token === VERIFICATION_TOKEN) {
-    console.log("✅ Verified POST challenge request from eBay:", challenge);
-    res.status(200).json({ challenge });
+  const challengeCode = req.body.challengeCode;
+  const token = req.body.verificationToken;
+
+  if (challengeCode && token === VERIFICATION_TOKEN) {
+    const hash = crypto.createHash("sha256");
+    hash.update(challengeCode);
+    hash.update(token);
+    hash.update(ENDPOINT);
+    const challengeResponse = hash.digest("hex");
+
+    console.log("✅ Valid POST challenge. Responding with:", challengeResponse);
+
+    res.status(200).json({ challengeResponse });
   } else {
-    console.log("❌ Invalid POST verification request");
-    res.status(400).send("Invalid verification");
+    console.log("❌ Invalid POST body", req.body);
+    res.status(400).send("Invalid challenge request");
   }
 });
 
-// Health check route
 app.get("/", (req, res) => {
-  res.send("🛠️ eBay Webhook Listener is live!");
+  res.send("✅ Webhook server is live!");
 });
 
 app.listen(PORT, () => {
