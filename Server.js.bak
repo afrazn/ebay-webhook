@@ -1,50 +1,30 @@
-const express = require("express");
 const crypto = require("crypto");
+const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-const VERIFICATION_TOKEN = "7f0a8c12b4f643c9a8c70842e73f7b89"; // your production token
-const ENDPOINT = "https://fragrancehook.life/webhook"; // your final domain
+const VERIFICATION_TOKEN = "7f0a8c12b4f643c9a8c70842e73f7b89";
+const ENDPOINT_URL = "https://fragrancehook.life/webhook";  // Your full Render domain endpoint
 
 app.use(express.json());
 
-// Handle GET challenge
+// Marketplace Deletion + Platform Notifications GET handler
 app.get("/webhook", (req, res) => {
-  const challenge = req.query.challenge_code;
-  if (challenge) {
-    console.log("✅ Received GET challenge from eBay:", challenge);
-    res.status(200).send(challenge);
-  } else {
+  const challengeCode = req.query.challenge_code || req.query.challenge;
+
+  if (!challengeCode) {
     console.log("❌ GET request missing challenge");
-    res.status(400).send("Missing challenge");
+    return res.status(400).send("Missing challenge");
   }
-});
 
-// Handle POST challenge for Marketplace Deletion
-app.post("/webhook", (req, res) => {
-  const challengeCode = req.body.challengeCode;
-  const token = req.body.verificationToken;
+  console.log("✅ Received GET challenge from eBay:", challengeCode);
 
-  if (challengeCode && token === VERIFICATION_TOKEN) {
-    const hash = crypto.createHash("sha256");
-    hash.update(challengeCode);
-    hash.update(token);
-    hash.update(ENDPOINT);
-    const challengeResponse = hash.digest("hex");
+  // Create hashed response
+  const hash = crypto.createHash("sha256");
+  hash.update(challengeCode);
+  hash.update(VERIFICATION_TOKEN);
+  hash.update(ENDPOINT_URL);
+  const responseHash = hash.digest("hex");
 
-    console.log("✅ Valid POST challenge. Responding with:", challengeResponse);
-
-    res.status(200).json({ challengeResponse });
-  } else {
-    console.log("❌ Invalid POST body", req.body);
-    res.status(400).send("Invalid challenge request");
-  }
-});
-
-app.get("/", (req, res) => {
-  res.send("✅ Webhook server is live!");
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  res.status(200).json({ challengeResponse: responseHash });
 });

@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const express = require("express");
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT;
 
 const VERIFICATION_TOKEN = "7f0a8c12b4f643c9a8c70842e73f7b89";
 const ENDPOINT_URL = "https://fragrancehook.life/webhook";  // Your full Render domain endpoint
